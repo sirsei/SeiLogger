@@ -98,7 +98,7 @@ local function StartMonitoring(remote)
         SendWebhook({
             content = mention,
             embeds = {{
-                title = "🎣 rennXvincent Logger | Ikan Terangkat!",
+                title = "🎣 rennXvincent Webhook | Ikan Terangkat!",
                 color = colors[data.Rarity],
                 fields = {
                     {name="Player", value="```"..data.Player.."```", inline=true},
