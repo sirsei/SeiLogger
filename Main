@@ -1,12 +1,12 @@
--- PART 1: UI & CONFIGURATION
+-- 1 
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 
--- Deteksi executor request
+-- 2 
 local http_request = (syn and syn.request) or (http and http.request) or request
 
--- Konfigurasi Global
+-- 3 
 getgenv().Config = {
     WebhookURL = "",
     Active = false,
@@ -14,7 +14,7 @@ getgenv().Config = {
     Toggles = {Epic=false, Legendary=false, Mythical=false, Secret=false}
 }
 
--- Membuat Window Utama
+-- 4 
 local Window = Fluent:CreateWindow({
     Title = "rennXvincent", 
     SubTitle = "VVIP Webhook (No Anti-Idle)",
@@ -23,7 +23,6 @@ local Window = Fluent:CreateWindow({
     Theme = "Dark"
 })
 
--- Tombol Floating untuk Minimize UI
 local function CreateFloatingButton()
     local sg = Instance.new("ScreenGui", game:GetService("CoreGui"))
     sg.Name = "rennXvincentToggle"; sg.ResetOnSpawn = false
@@ -32,9 +31,7 @@ local function CreateFloatingButton()
     btn.BackgroundTransparency = 0.3; btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     btn.Image = "rbxassetid://127722067073247"; btn.Draggable = true
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
-    btn.MouseButton1Click:Connect(function()
-        Window:Minimize()
-    end)
+    btn.MouseButton1Click:Connect(function() Window:Minimize() end)
 end
 CreateFloatingButton()
 
@@ -51,12 +48,17 @@ for r,_ in pairs(getgenv().Config.Toggles) do
     Tabs.Filters:AddToggle(r,{Title="Log "..r, Default=false}):OnChanged(function(v) getgenv().Config.Toggles[r] = v end)
 end
 
--- PART 2: LOGIC & MONITORING
+-- 5
 local function parseFishData(rawText)
     local clean = rawText:gsub("<[^>]*>", ""):gsub("%s+", " ")
     local player = clean:match("%[Server%]:%s*(.-)%s+obtained") or clean:match("^(.-)%s+obtained") or "Unknown"
-    local fish = clean:match("obtained%s+an?%s+(.-)%s?%(") or clean:match("obtained%s+an?%s+(.-)$") or "Unknown"
+    local fullFishName = clean:match("obtained%s+an?%s+(.-)%s?%(") or clean:match("obtained%s+an?%s+(.-)$") or "Unknown"
     local weight = clean:match("%((.-)%)") or "N/A"
+    
+    local mutation = fullFishName:match("^(%s*[A-Z]+%s+)") or "None"
+    local fishNameOnly = fullFishName:gsub("^(%s*[A-Z]+%s+)", "")
+    mutation = mutation:gsub("%s+", "") 
+    
     local r,g,b = rawText:match("rgb%((%d+),%s*(%d+),%s*(%d+)%)")
     local rarity = "Unknown"
     
@@ -65,9 +67,9 @@ local function parseFishData(rawText)
         if r==179 and g==115 then rarity="Epic"
         elseif r==255 and g==185 then rarity="Legendary"
         elseif r>180 and g<100 then rarity="Mythical"
-        elseif g>200 then rarity="Secret" end
+        elseif g>200 or (r==0 and g==255 and b==255) then rarity="Secret" end
     end
-    return {Player=player, Name=fish, Weight=weight, Rarity=rarity}
+    return {Player=player, Name=fishNameOnly, Mutation=mutation, Weight=weight, Rarity=rarity}
 end
 
 local function SendWebhook(payload)
@@ -100,20 +102,20 @@ local function StartMonitoring(remote)
                 title = "🎣 rennXvincent Webhook | Ikan Terangkat!",
                 color = colors[data.Rarity],
                 fields = {
-                    {name="Player", value="```"..data.Player.."```", inline=true},
-                    {name="Fish", value="```"..data.Name.."```", inline=true},
-                    {name="Tier", value="```"..data.Rarity.."```", inline=true},
-                    {name="Weight", value="```"..data.Weight.."```", inline=true}
-                }
+                    {name="👤 Player", value="```fix\n"..data.Player.."```", inline=false},
+                    {name="🐟 Fish", value="**"..data.Name.."**", inline=true},
+                    {name="💎 Tier", value="**"..data.Rarity.."**", inline=true},
+                    {name="⚖️ Weight", value="`"..data.Weight.."`", inline=true},
+                    {name="✨ Mutation", value="```yaml\n"..data.Mutation.."```", inline=false},
+                },
+                footer = { text = "VVIP Logger • " .. os.date("%X") }
             }}
         })
     end)
 end
 
--- Menghubungkan ke Remote Events yang ada dan yang akan datang
-for _, v in pairs(game:GetDescendants()) do 
-    pcall(StartMonitoring, v) 
-end
+-- 6 
+for _, v in pairs(game:GetDescendants()) do pcall(StartMonitoring, v) end
 game.DescendantAdded:Connect(StartMonitoring)
 
 Tabs.Main:AddButton({Title="Test Webhook", Callback=function() SendWebhook({content="✅ VVIP Webhook Ready!"}) end})
